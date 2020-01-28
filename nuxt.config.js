@@ -50,6 +50,10 @@ export default {
     '/api/': {
       target: "https://newsapi.org/v2/",
       pathRewrite: {"^/api/": ""}
+    },
+    '/register/': {
+      target: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyA3o5D-gi0VuISDIVlcUTwfa3JRktRQaxA",
+      pathRewrite: {"^/register/": ""}
     }
   },
 

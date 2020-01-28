@@ -2,7 +2,7 @@
   <div class="md-layout md-alignment-center" style="margin:4em 0">
     <!-- top navigation -->
     <md-toolbar class="fixed-toolbar" elavation="1">
-      <md-button class="md-icon-button">
+      <md-button @click="showLeftSidePanel = true" class="md-icon-button">
         <md-icon>menu</md-icon>
       </md-button>
       <nuxt-link class="md-primary md-title" to="/">NuxtNews</nuxt-link>
@@ -10,8 +10,43 @@
       <div class="md-toolbar-section-end">
         <md-button to="/login">Login</md-button>
         <md-button to="/register">Register</md-button>
+        <md-button class="md-accent" @click="showRightSidePanel = true">Categories</md-button>
       </div>
     </md-toolbar>
+
+    <!-- Personal news feed (left drawer) -->
+    <md-drawer md-fixed :md-active.sync="showLeftSidePanel">
+      <md-toolbar md-elevation="1">
+        <span class="md-title">Personal Feed</span>
+      </md-toolbar>
+      <md-progress-bar v-if="loading" md-mode="indeterminate"></md-progress-bar>
+      <md-field>
+        <label for="country">Country</label>
+        <md-select name="country" :value="country" id="country" @input="changeCountry">
+          <md-option value="us">United States</md-option>
+          <md-option value="ca">Canada</md-option>
+          <md-option value="de">Germany</md-option>
+          <md-option value="ru">Russia</md-option>
+        </md-select>
+      </md-field>
+    </md-drawer>
+
+    <!-- news categories (right drawer -->
+    <md-drawer class="md-right" md-fixed :md-active.sync="showRightSidePanel">
+      <md-toolbar :md-elevation="1">
+        <span class="md-title">News Categories</span>
+      </md-toolbar>
+
+      <md-progress-bar v-if="loading" md-mode="indeterminate"></md-progress-bar>
+
+      <md-list>
+        <md-subheader class="md-primary">Category</md-subheader>
+          <md-list-item v-for="(newsCategory, i) in newsCategories" :key="i" @click="loadCategory(newsCategory.path)">
+            <md-icon :class="newsCategory.path === category ? 'md-primary': ''">{{newsCategory.icon}}</md-icon>
+            <span class="md-list-item-text">{{newsCategory.name}}</span>
+          </md-list-item>
+      </md-list>
+    </md-drawer>
 
     <!-- APP CONTENT -->
     <div class="md-layout-item md-size-95">
@@ -19,19 +54,23 @@
         <ul v-for="headline in headlines" :key="headline.id"
             class="md-layout-item md-large-size-25 md-medium-size-33 md-small-size-50 md-xsmall-size-100">
           <md-card style="margin-top: 1em;" md-with-hover>
+
             <md-ripple>
+
               <md-card-media md-ratio="16:9">
                 <img :src="headline.urlToImage" :alt="headline.title"/>
               </md-card-media>
 
               <md-card-header>
                 <div class="md-title">
-                  <a :href="headline.url" target="_blank">{{ headline.title}}</a>
+                  <a :href="headline.url" target="_blank">{{ headline.title }}</a>
                 </div>
+
                 <div>
                   {{headline.source.name}}
                   <md-icon class="small-icon">book</md-icon>
                 </div>
+
                 <div class="md-subhead" v-if="headline.author">
                   {{headline.author}}
                   <md-icon class="small-icon">face</md-icon>
@@ -63,12 +102,48 @@
 
 <script>
   export default {
+    data: () => ({
+      showLeftSidePanel: false,
+      showRightSidePanel: false,
+      newsCategories: [
+        { name: 'Top Headlines', path: '', icon: 'today'},
+        { name: 'Technology', path: 'technology', icon: 'keyboard'},
+        { name: 'Business', path: 'business', icon: 'business_center'},
+        { name: 'Entertainment', path: 'entertainment', icon: 'weekend'},
+        { name: 'Health', path: 'health', icon: 'fastfood'},
+        { name: 'Science', path: 'science', icon: 'fingerprint'},
+        { name: 'Sports', path: 'sports', icon: 'golf_course'}
+      ]
+    }),
     async fetch({store}) {
-      await store.dispatch('loadHeadlines', '/api/top-headlines?country=us');
+      await store.dispatch('loadHeadlines', `/api/top-headlines?country=${store.state.country}&category=${store.state.category}`);
+    },
+    watch: {
+      async country() {
+        await this.$store.dispatch('loadHeadlines', `/api/top-headlines?country=${this.country}&category=${this.category}`);
+      }
     },
     computed: {
       headlines() {
         return this.$store.getters.headlines;
+      },
+      category() {
+        return this.$store.getters.category;
+      },
+      loading() {
+        return this.$store.getters.loading;
+      },
+      country() {
+        return this.$store.getters.country;
+      }
+    },
+    methods: {
+      async loadCategory(category) {
+        this.$store.commit('setCategory', category);
+        await this.$store.dispatch('loadHeadlines', `/api/top-headlines?country=${this.country}&category=${this.category}`);
+      },
+      changeCountry(country) {
+        this.$store.commit('setCountry', country);
       }
     }
   }
