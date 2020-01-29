@@ -1,5 +1,10 @@
+require('dotenv').config();
+
 export default {
   mode: 'spa',
+  router: {
+    middleware: "check-auth"
+  },
   /*
   ** Headers of the page
   */
@@ -31,7 +36,8 @@ export default {
   */
   plugins: [
     {src: '~/plugins/vue-material'},
-    {src: '~/plugins/axios'}
+    {src: '~/plugins/axios'},
+    {src: '~/plugins/firestore'}
   ],
   /*
   ** Nuxt.js dev-modules
@@ -47,18 +53,22 @@ export default {
   },
 
   proxy: {
-    '/api/': {
+    "/api/": {
       target: "https://newsapi.org/v2/",
       pathRewrite: {"^/api/": ""}
     },
-    '/register/': {
-      target: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyA3o5D-gi0VuISDIVlcUTwfa3JRktRQaxA",
+    "/register/": {
+      target: `https://www.googleapis.com/identitytoolkit/v3/relyingparty/signupNewUser?key=${process.env.APP_ID}`,
       pathRewrite: {"^/register/": ""}
+    },
+    "/login/": {
+      target: `https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key=${process.env.APP_ID}`,
+      pathRewrite: {"^/login/": ""}
     }
   },
 
   env: {
-    NEWS_API_KEY: "6841e7d2db98403cb5c399a2795779ec"
+    NEWS_API_KEY: process.env.NEWS_API_KEY
   },
 
   buildModules: [],

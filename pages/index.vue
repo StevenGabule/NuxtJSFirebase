@@ -8,8 +8,18 @@
       <nuxt-link class="md-primary md-title" to="/">NuxtNews</nuxt-link>
 
       <div class="md-toolbar-section-end">
-        <md-button to="/login">Login</md-button>
-        <md-button to="/register">Register</md-button>
+        <template v-if="isAuthenticated">
+          <md-button>
+            <md-avatar><img :src="user.avatar" :alt="user.email"></md-avatar>
+            {{user.email}}
+          </md-button>
+          <md-button @click="logoutUser">Logout</md-button>
+        </template>
+
+        <template v-else>
+          <md-button to="/login">Login</md-button>
+          <md-button to="/register">Register</md-button>
+        </template>
         <md-button class="md-accent" @click="showRightSidePanel = true">Categories</md-button>
       </div>
     </md-toolbar>
@@ -40,7 +50,7 @@
       <md-progress-bar v-if="loading" md-mode="indeterminate"></md-progress-bar>
 
       <md-list>
-        <md-subheader class="md-primary">Category</md-subheader>
+        <md-subheader class="md-primary">Categories</md-subheader>
           <md-list-item v-for="(newsCategory, i) in newsCategories" :key="i" @click="loadCategory(newsCategory.path)">
             <md-icon :class="newsCategory.path === category ? 'md-primary': ''">{{newsCategory.icon}}</md-icon>
             <span class="md-list-item-text">{{newsCategory.name}}</span>
@@ -115,14 +125,21 @@
         { name: 'Sports', path: 'sports', icon: 'golf_course'}
       ]
     }),
+
     async fetch({store}) {
-      await store.dispatch('loadHeadlines', `/api/top-headlines?country=${store.state.country}&category=${store.state.category}`);
+      await store.dispatch(
+        "loadHeadlines",
+        `/api/top-headlines?country=${store.state.country}&category=${store.state.category}`);
     },
+
     watch: {
       async country() {
-        await this.$store.dispatch('loadHeadlines', `/api/top-headlines?country=${this.country}&category=${this.category}`);
+        await this.$store.dispatch(
+          "loadHeadlines",
+          `/api/top-headlines?country=${this.country}&category=${this.category}`);
       }
     },
+
     computed: {
       headlines() {
         return this.$store.getters.headlines;
@@ -135,8 +152,15 @@
       },
       country() {
         return this.$store.getters.country;
+      },
+      user() {
+        return this.$store.getters.user;
+      },
+      isAuthenticated() {
+        return this.$store.getters.isAuthenticated;
       }
     },
+
     methods: {
       async loadCategory(category) {
         this.$store.commit('setCategory', category);
@@ -144,6 +168,9 @@
       },
       changeCountry(country) {
         this.$store.commit('setCountry', country);
+      },
+      logoutUser() {
+        this.$store.dispatch("logoutUser");
       }
     }
   }
