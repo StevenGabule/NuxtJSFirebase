@@ -1,13 +1,15 @@
 import Vuex from 'vuex'
 import md5 from "md5";
 import db from "../plugins/firestore";
-import {saveUserData, clearUserData} from "~/utils";
+import {clearUserData, saveUserData} from "~/utils";
+import slugify from "slugify";
 
 
 const createStore = () => {
   return new Vuex.Store({
     state: {
       headlines: [],
+      headline: null,
       feed: [],
       category: '',
       loading: false,
@@ -19,6 +21,10 @@ const createStore = () => {
     mutations: {
       setHeadlines(state, headlines) {
         state.headlines = headlines;
+      },
+
+      setHeadline(state, headline) {
+        state.headline = headline;
       },
 
       setLoading(state, loading) {
@@ -51,8 +57,16 @@ const createStore = () => {
       async loadHeadlines({commit}, apiUrl) {
         commit('setLoading', true);
         const {articles} = await this.$axios.$get(apiUrl);
+        const headlines = articles.map(article => {
+          const slug = slugify(article.title, {
+            replacement: '-',
+            remove: /[^a-zA-Z0-9 -]/g,
+            lower: true
+          });
+          return {...article, slug};
+        });
         commit('setLoading', false);
-        commit('setHeadlines', articles);
+        commit('setHeadlines', headlines);
       },
 
       async addHeadlineToFeed({ state }, headline) {
@@ -63,7 +77,6 @@ const createStore = () => {
       async loadUserFeed({ state, commit }) {
         if (state.user) {
           const feedRef = db.collection(`users/${state.user.email}/feed`);
-
           await feedRef.onSnapshot(querySnapshot => {
             let headlines = [];
             querySnapshot.forEach(doc => {
@@ -73,8 +86,31 @@ const createStore = () => {
             if (querySnapshot.empty) {
               headlines = [];
               commit("setFeed", headlines);
-            } 
+            }
           });
+        }
+      },
+
+      async loadHeadline({commit}, headlineSlug) {
+        const headlineRef = db.collection('headlines').doc(headlineSlug);
+        await headlineRef.get().then(doc => {
+          if (doc.exists) {
+            const headline = doc.data();
+            commit('setHeadline', headline)
+          }
+        })
+      },
+
+      async saveHeadline(context, headline) {
+        const headlineRef = db.collection('headlines').doc(headline.slug);
+        let headlineId;
+        await headlineRef.get().then(doc => {
+          if (doc.exists) {
+            headlineId = doc.id;
+          }
+        });
+        if (!headlineId) {
+          await headlineRef.set(headline)
         }
       },
 
@@ -124,6 +160,7 @@ const createStore = () => {
 
     getters: {
       headlines: state => state.headlines,
+      headline: state => state.headline,
       feed: state => state.feed,
       loading: state => state.loading,
       user: state => state.user,

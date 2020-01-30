@@ -41,11 +41,14 @@
       </md-field>
 
       <!-- default markup (if feed empty) -->
-      <md-empty-state class="md-primary" v-if="feed.length === 0 && !user" md-icon="bookmarks" md-label="Nothing in Feed" md-description="Login to bookmark headlines">
+      <md-empty-state class="md-primary" v-if="feed.length === 0 && !user" md-icon="bookmarks"
+                      md-label="Nothing in Feed" md-description="Login to bookmark headlines">
         <md-button to="/login" class="md-primary md-raised">Login</md-button>
       </md-empty-state>
 
-      <md-empty-state v-else-if="feed.length === 0" class="md-accent" md-icon="bookmark_outline" md-label="Nothing in feed" md-description="Anything you bookmark will be safely stored here!"></md-empty-state>
+      <md-empty-state v-else-if="feed.length === 0" class="md-accent" md-icon="bookmark_outline"
+                      md-label="Nothing in feed"
+                      md-description="Anything you bookmark will be safely stored here!"></md-empty-state>
 
       <!-- Feed Content  (if feed not empty)-->
       <md-list class="md-triple-line" v-else v-for="headline in feed" :key="headline.id">
@@ -127,7 +130,7 @@
                   <md-icon>bookmark</md-icon>
                 </md-button>
 
-                <md-button class="md-icon-button">
+                <md-button class="md-icon-button" @click="saveHeadline(headline)">
                   <md-icon>message</md-icon>
                 </md-button>
               </md-card-actions>
@@ -140,81 +143,86 @@
 </template>
 
 <script>
-  export default {
-    data: () => ({
-      showLeftSidePanel: false,
-      showRightSidePanel: false,
-      newsCategories: [
-        {name: 'Top Headlines', path: '', icon: 'today'},
-        {name: 'Technology', path: 'technology', icon: 'keyboard'},
-        {name: 'Business', path: 'business', icon: 'business_center'},
-        {name: 'Entertainment', path: 'entertainment', icon: 'weekend'},
-        {name: 'Health', path: 'health', icon: 'fastfood'},
-        {name: 'Science', path: 'science', icon: 'fingerprint'},
-        {name: 'Sports', path: 'sports', icon: 'golf_course'}
-      ]
-    }),
+    export default {
+        data: () => ({
+            showLeftSidePanel: false,
+            showRightSidePanel: false,
+            newsCategories: [
+                {name: 'Top Headlines', path: '', icon: 'today'},
+                {name: 'Technology', path: 'technology', icon: 'keyboard'},
+                {name: 'Business', path: 'business', icon: 'business_center'},
+                {name: 'Entertainment', path: 'entertainment', icon: 'weekend'},
+                {name: 'Health', path: 'health', icon: 'fastfood'},
+                {name: 'Science', path: 'science', icon: 'fingerprint'},
+                {name: 'Sports', path: 'sports', icon: 'golf_course'}
+            ]
+        }),
 
-    async fetch({store}) {
-      await store.dispatch("loadHeadlines", `/api/top-headlines?country=${store.state.country}&category=${store.state.category}`);
-      await store.dispatch("loadUserFeed");
-    },
+        async fetch({store}) {
+            await store.dispatch("loadHeadlines", `/api/top-headlines?country=${store.state.country}&category=${store.state.category}`);
+            await store.dispatch("loadUserFeed");
+        },
 
-    watch: {
-      async country() {
-        await this.$store.dispatch("loadHeadlines", `/api/top-headlines?country=${this.country}&category=${this.category}`);
-      }
-    },
+        watch: {
+            async country() {
+                await this.$store.dispatch("loadHeadlines", `/api/top-headlines?country=${this.country}&category=${this.category}`);
+            }
+        },
 
-    computed: {
-      headlines() {
-        return this.$store.getters.headlines;
-      },
-      feed() {
-        return this.$store.getters.feed;
-      },
-      category() {
-        return this.$store.getters.category;
-      },
-      loading() {
-        return this.$store.getters.loading;
-      },
-      country() {
-        return this.$store.getters.country;
-      },
-      user() {
-        return this.$store.getters.user;
-      },
-      isAuthenticated() {
-        return this.$store.getters.isAuthenticated;
-      }
-    },
+        computed: {
+            headlines() {
+                return this.$store.getters.headlines;
+            },
+            feed() {
+                return this.$store.getters.feed;
+            },
+            category() {
+                return this.$store.getters.category;
+            },
+            loading() {
+                return this.$store.getters.loading;
+            },
+            country() {
+                return this.$store.getters.country;
+            },
+            user() {
+                return this.$store.getters.user;
+            },
+            isAuthenticated() {
+                return this.$store.getters.isAuthenticated;
+            }
+        },
 
-    methods: {
-      async loadCategory(category) {
-        this.$store.commit('setCategory', category);
-        await this.$store.dispatch('loadHeadlines', `/api/top-headlines?country=${this.country}&category=${this.category}`);
-      },
-      async addHeadlineToFeed(headline) {
-        if (this.user) {
-          await this.$store.dispatch("addHeadlineToFeed", headline);
+        methods: {
+            async loadCategory(category) {
+                this.$store.commit('setCategory', category);
+                await this.$store.dispatch('loadHeadlines', `/api/top-headlines?country=${this.country}&category=${this.category}`);
+            },
+            async addHeadlineToFeed(headline) {
+                if (this.user) {
+                    await this.$store.dispatch("addHeadlineToFeed", headline);
+                }
+            },
+            changeCountry(country) {
+                this.$store.commit('setCountry', country);
+            },
+            logoutUser() {
+                this.$store.dispatch("logoutUser");
+            },
+            isInFeed(title) {
+                const inFeed = this.feed.findIndex(headline => headline.title === title) > -1;
+                return inFeed ? "md-primary" : "";
+            },
+            async removeHeadlineFromFeed(headline) {
+                await this.$store.dispatch('removeHeadlineFromFeed', headline)
+            },
+            async saveHeadline(headline) {
+                await this.$store.dispatch('saveHeadline', headline).then(() => {
+                    this.$router.push(`/headlines/${headline.slug}`);
+                });
+            }
         }
-      },
-      changeCountry(country) {
-        this.$store.commit('setCountry', country);
-      },
-      logoutUser() {
-        this.$store.dispatch("logoutUser");
-      },
-      isInFeed(title) {
-        const inFeed = this.feed.findIndex(headline => headline.title === title) > -1;
-        return inFeed ? "md-primary" : "";
-      },
-      async removeHeadlineFromFeed(headline) {
-        await this.$store.dispatch('removeHeadlineFromFeed', headline)
-      }
     }
-  }
 </script>
 
 <style scoped>
