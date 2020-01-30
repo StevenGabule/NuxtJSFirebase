@@ -39,7 +39,34 @@
           <md-option value="ru">Russia</md-option>
         </md-select>
       </md-field>
+
+      <!-- default markup (if feed empty) -->
+      <md-empty-state class="md-primary" v-if="feed.length === 0 && !user" md-icon="bookmarks" md-label="Nothing in Feed" md-description="Login to bookmark headlines">
+        <md-button to="/login" class="md-primary md-raised">Login</md-button>
+      </md-empty-state>
+
+      <md-empty-state v-else-if="feed.length === 0" class="md-accent" md-icon="bookmark_outline" md-label="Nothing in feed" md-description="Anything you bookmark will be safely stored here!"></md-empty-state>
+
+      <!-- Feed Content  (if feed not empty)-->
+      <md-list class="md-triple-line" v-else v-for="headline in feed" :key="headline.id">
+        <md-list-item>
+          <md-avatar><img :src="headline.urlToImage" :alt="headline.title"></md-avatar>
+
+          <div class="md-list-item-text">
+            <span><a :href="headline.url" target="_blank">{{headline.title}}</a></span>
+            <span>{{headline.source.name}}</span>
+            <span>View Comments</span>
+          </div>
+
+          <md-button class="md-icon-button md-list-action">
+            <md-icon class="md-accent">delete</md-icon>
+          </md-button>
+        </md-list-item>
+        <md-divider class="md-inset"></md-divider>
+      </md-list>
+
     </md-drawer>
+
 
     <!-- news categories (right drawer -->
     <md-drawer class="md-right" md-fixed :md-active.sync="showRightSidePanel">
@@ -51,10 +78,10 @@
 
       <md-list>
         <md-subheader class="md-primary">Categories</md-subheader>
-          <md-list-item v-for="(newsCategory, i) in newsCategories" :key="i" @click="loadCategory(newsCategory.path)">
-            <md-icon :class="newsCategory.path === category ? 'md-primary': ''">{{newsCategory.icon}}</md-icon>
-            <span class="md-list-item-text">{{newsCategory.name}}</span>
-          </md-list-item>
+        <md-list-item v-for="(newsCategory, i) in newsCategories" :key="i" @click="loadCategory(newsCategory.path)">
+          <md-icon :class="newsCategory.path === category ? 'md-primary': ''">{{newsCategory.icon}}</md-icon>
+          <span class="md-list-item-text">{{newsCategory.name}}</span>
+        </md-list-item>
       </md-list>
     </md-drawer>
 
@@ -94,7 +121,9 @@
               <md-card-content>{{ headline.description}}</md-card-content>
 
               <md-card-actions>
-                <md-button class="md-icon-button">
+                <md-button class="md-icon-button"
+                           :class="isInFeed(headline.title)"
+                           @click="addHeadlineToFeed(headline)">
                   <md-icon>bookmark</md-icon>
                 </md-button>
 
@@ -116,33 +145,33 @@
       showLeftSidePanel: false,
       showRightSidePanel: false,
       newsCategories: [
-        { name: 'Top Headlines', path: '', icon: 'today'},
-        { name: 'Technology', path: 'technology', icon: 'keyboard'},
-        { name: 'Business', path: 'business', icon: 'business_center'},
-        { name: 'Entertainment', path: 'entertainment', icon: 'weekend'},
-        { name: 'Health', path: 'health', icon: 'fastfood'},
-        { name: 'Science', path: 'science', icon: 'fingerprint'},
-        { name: 'Sports', path: 'sports', icon: 'golf_course'}
+        {name: 'Top Headlines', path: '', icon: 'today'},
+        {name: 'Technology', path: 'technology', icon: 'keyboard'},
+        {name: 'Business', path: 'business', icon: 'business_center'},
+        {name: 'Entertainment', path: 'entertainment', icon: 'weekend'},
+        {name: 'Health', path: 'health', icon: 'fastfood'},
+        {name: 'Science', path: 'science', icon: 'fingerprint'},
+        {name: 'Sports', path: 'sports', icon: 'golf_course'}
       ]
     }),
 
     async fetch({store}) {
-      await store.dispatch(
-        "loadHeadlines",
-        `/api/top-headlines?country=${store.state.country}&category=${store.state.category}`);
+      await store.dispatch("loadHeadlines", `/api/top-headlines?country=${store.state.country}&category=${store.state.category}`);
+      await store.dispatch("loadUserFeed");
     },
 
     watch: {
       async country() {
-        await this.$store.dispatch(
-          "loadHeadlines",
-          `/api/top-headlines?country=${this.country}&category=${this.category}`);
+        await this.$store.dispatch("loadHeadlines", `/api/top-headlines?country=${this.country}&category=${this.category}`);
       }
     },
 
     computed: {
       headlines() {
         return this.$store.getters.headlines;
+      },
+      feed() {
+        return this.$store.getters.feed;
       },
       category() {
         return this.$store.getters.category;
@@ -166,11 +195,20 @@
         this.$store.commit('setCategory', category);
         await this.$store.dispatch('loadHeadlines', `/api/top-headlines?country=${this.country}&category=${this.category}`);
       },
+      async addHeadlineToFeed(headline) {
+        if (this.user) {
+          await this.$store.dispatch("addHeadlineToFeed", headline);
+        }
+      },
       changeCountry(country) {
         this.$store.commit('setCountry', country);
       },
       logoutUser() {
         this.$store.dispatch("logoutUser");
+      },
+      isInFeed(title) {
+        const inFeed = this.feed.findIndex(headline => headline.title === title) > -1;
+        return inFeed ? "md-primary" : "";
       }
     }
   }

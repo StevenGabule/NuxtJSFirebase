@@ -8,6 +8,7 @@ const createStore = () => {
   return new Vuex.Store({
     state: {
       headlines: [],
+      feed: [],
       category: '',
       loading: false,
       token: "",
@@ -38,8 +39,12 @@ const createStore = () => {
       setCountry(state, country) {
         state.country = country;
       },
+      setFeed(state, headlines) {
+        state.feed = headlines;
+      },
       clearToken: state => (state.token = ""),
-      clearUser: state => (state.user = null)
+      clearUser: state => (state.user = null),
+      clearFeed: state => (state.feed = []),
     },
 
     actions: {
@@ -48,6 +53,25 @@ const createStore = () => {
         const {articles} = await this.$axios.$get(apiUrl);
         commit('setLoading', false);
         commit('setHeadlines', articles);
+      },
+
+      async addHeadlineToFeed({ state }, headline) {
+        const feedRef = db.collection(`users/${state.user.email}/feed`).doc(headline.title);
+        await feedRef.set(headline);
+      },
+
+      async loadUserFeed({ state, commit }) {
+        if (state.user) {
+          const feedRef = db.collection(`users/${state.user.email}/feed`);
+
+          await feedRef.onSnapshot(querySnapshot => {
+            let headlines = [];
+            querySnapshot.forEach(doc => {
+              headlines.push(doc.data());
+              commit("setFeed", headlines);
+            });
+          });
+        }
       },
 
       async authenticateUser({commit}, userPayload) {
@@ -84,12 +108,14 @@ const createStore = () => {
       logoutUser({commit}) {
         commit("clearToken");
         commit("clearUser");
+        commit("clearFeed");
         clearUserData();
       }
     },
 
     getters: {
       headlines: state => state.headlines,
+      feed: state => state.feed,
       loading: state => state.loading,
       user: state => state.user,
       isAuthenticated: state => !!state.token,
