@@ -15,7 +15,8 @@ const createStore = () => {
       loading: false,
       token: "",
       country: 'us',
-      user: null
+      user: null,
+      source: ''
     },
 
     mutations: {
@@ -37,6 +38,10 @@ const createStore = () => {
 
       setUser(state, user) {
         state.user = user;
+      },
+
+      setSource(state, source) {
+        state.source= source;
       },
 
       setCategory(state, category) {
@@ -219,7 +224,8 @@ const createStore = () => {
       user: state => state.user,
       isAuthenticated: state => !!state.token,
       category: state => state.category,
-      country: state => state.country
+      country: state => state.country,
+      source: state => state.source
     }
   })
 };
