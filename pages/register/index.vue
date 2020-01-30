@@ -39,6 +39,11 @@
       </md-snackbar>
 
     </md-card>
+
+    <!-- back button -->
+    <md-button class="md-fixed md-primary md-fab md-fab-bottom-right" @click="$router.go(-1)">
+      <md-icon>arrow_back</md-icon>
+    </md-button>
   </div>
 </template>
 

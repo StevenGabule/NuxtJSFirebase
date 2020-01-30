@@ -3,7 +3,7 @@ import md5 from "md5";
 import db from "../plugins/firestore";
 import {clearUserData, saveUserData} from "~/utils";
 import slugify from "slugify";
-
+import defaultImage from '~/assets/newspaper.jpg'
 
 const createStore = () => {
   return new Vuex.Store({
@@ -68,6 +68,9 @@ const createStore = () => {
             remove: /[^a-zA-Z0-9 -]/g,
             lower: true
           });
+          if (!article.urlToImage) {
+            article.urlToImage = defaultImage;
+          }
           return {...article, slug};
         });
         commit('setLoading', false);
